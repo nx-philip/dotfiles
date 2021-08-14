@@ -15,7 +15,7 @@ do
            echo $date
                 break
                 ;;
-        *) echo "invalid option $REPLY"
+        *) echo "invalid option"
                 ;;
         esac
 done
