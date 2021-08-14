@@ -1,5 +1,8 @@
 #!/bin/bash
 source ~/.bashrc
+#Initializes an empty variable for Ticket ID
+Tid=" "
+
 # Ask the user for abosulte path of the audit.log.xz
 read -p "Input abosulte path of the audit.log.xz file: " auditfile
 
@@ -12,8 +15,18 @@ read -p "Input URL: " uri
 # Ask the user the Client IP
 read -p "Input Client IP: " Cip
 
-# saves the value of the triggered modsec unique id in $rules.
-rules=( $( xzcat $auditfile | grep $domainname | grep $uri | grep ${Cip} | grep 'Pattern match' | cut -d " " -f 2 | awk -F ',' '{print $2}' | awk -F ':' '{print $2}' | sed s/\"//g) );
+# Ask the user the Ticket ID
+read -p "Input Ticket ID (optional): " Tid
 
-#Finds the modsec rules to be whitelisted based on the unique id.
-for element in "${rules[@]}"; do echo "${element}"; sup_catlogs $auditfile | grep --color=auto -F "${element}" | grep --color=auto -Po ' \[id\s+\\"\K[0-9]*' | grep -v "^981176$\|^4011015$\|^4049" | sort -u; echo " " ;done
+#echo "$auditfile $domainname $uri $Cip"                  // For Debugging
+
+rules=( $( xzcat $auditfile | grep $domainname | grep $uri | grep ${Cip} | grep 'Pattern match' | cut -d " " -f 2 | awk -F ',' '{print $2}' | awk -F ':' '{print $2}' | sed s/\"//g) );
+#for element in "${rules[@]}"; do echo "${element}"; done // For Debugging
+
+echo " "
+echo "<IfModule mod_security2.c>
+  <LocationMatch $uri >
+   #Ticket: $Tid   "
+for element in "${rules[@]}"; do sup_catlogs $auditfile | grep --color=auto -F "${element}" | grep --color=auto -Po ' \[id\s+\\"\K[0-9]*' | grep -v "^981176$\|^4011015$\|^4049" | sort -u; done |  sort -u | sed 's/^/   SecRuleRemoveById /'
+echo "  </LocationMatch>
+</IfModule>"
